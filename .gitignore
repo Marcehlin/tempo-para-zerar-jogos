@@ -1,0 +1,12 @@
+# dados brutos e progresso da coleta
+Coleta/
+
+# Python
+__pycache__/
+*.pyc
+
+# editores e sistema
+.vscode/
+.ipynb_checkpoints/
+Thumbs.db
+.DS_Store
