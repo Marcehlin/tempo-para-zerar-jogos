@@ -7,10 +7,10 @@ Foi montada para um trabalho de Modelos Lineares Generalizados (MLG).
 
 Este repositório traz a base pronta e os scripts que a coletam e montam do zero.
 
-- **Base:** [`dados/jogos_mlg.csv`](dados/jogos_mlg.csv), com 7.071 jogos e 17 colunas, sem valores faltantes.
+- **Base:** [`dados/tempo-para-zerar-jogos.csv`](dados/tempo-para-zerar-jogos.csv), com 7.094 jogos e 17 colunas, sem valores faltantes.
 - **Coleta:** 13 e 14 de novembro de 2026.
 
-## Colunas de `dados/jogos_mlg.csv`
+## Colunas de `dados/tempo-para-zerar-jogos.csv`
 
 | Coluna | Descrição |
 |---|---|
@@ -35,7 +35,7 @@ Este repositório traz a base pronta e os scripts que a coletam e montam do zero
 Para ler no R:
 
 ```r
-dados <- read.csv("dados/jogos_mlg.csv", stringsAsFactors = TRUE)
+dados <- read.csv("dados/tempo-para-zerar-jogos.csv", stringsAsFactors = TRUE)
 ```
 
 ## Como atualizar a base
@@ -45,7 +45,7 @@ Só é preciso Python 3 (nenhum pacote extra).
 ```
 python coletar_dados.py teste    # opcional: amostra de ~50 jogos, 1 a 2 minutos
 python coletar_dados.py          # coleta completa
-python montar_base.py            # gera dados/jogos_mlg.csv
+python montar_base.py            # gera dados/tempo-para-zerar-jogos.csv
 ```
 
 A coleta completa faz cerca de 15 mil consultas ao Metacritic e de 15 a 50 mil ao
@@ -60,7 +60,7 @@ repositório.
 |---|---|
 | `coletar_dados.py` | coleta do Metacritic e do HowLongToBeat |
 | `montar_base.py` | junção das duas fontes, filtros e construção das variáveis |
-| `dados/jogos_mlg.csv` | base final |
+| `dados/tempo-para-zerar-jogos.csv` | base final |
 | `dados/estudios_regiao.csv` | região da empresa dona de cada estúdio |
 | `dados/hltb_ids.csv` | IDs e nomes de jogos já conhecidos no HowLongToBeat, usados para dirigir a coleta |
 
@@ -80,8 +80,8 @@ repositório.
 4. **Limpeza.** Saem jogos sem nota de usuários, sem metascore, sem plataforma, sem
    gênero ou desenvolvedora, e as compilações.
 
-Na coleta de novembro de 2026, dos 14.418 jogos do Metacritic, 7.228 formaram par e
-7.071 ficaram na base.
+Na coleta de novembro de 2026, dos 14.464 jogos do Metacritic, 7.251 formaram par e
+7.094 ficaram na base.
 
 ### Gênero
 
@@ -123,9 +123,6 @@ Turquia). Para corrigir uma classificação, edite a tabela e rode `python monta
 - **Tabela de regiões.** Parte foi montada à mão e parte (367 estúdios, acrescentados em
   novembro de 2026) foi proposta com ajuda de IA e só parcialmente verificada. Correções
   são bem-vindas.
-- **Lacuna nesta versão.** A lista do Metacritic repetiu entradas durante a coleta e cerca
-  de 45 a 60 jogos do site (0,3% a 0,4%) ficaram de fora. O `coletar_dados.py` já percorre
-  a lista em duas passagens para evitar isso nas próximas coletas.
 - **HowLongToBeat parcial.** A coleta visita os IDs conhecidos cujo nome coincide com o de
   algum jogo do Metacritic e todos os IDs novos; um jogo antigo renomeado no site pode
   não ser revisitado. A opção `--hltb-completo` visita todos.

@@ -1,4 +1,4 @@
-"""Monta dados/jogos_mlg.csv a partir dos dados coletados por coletar_dados.py.
+"""Monta dados/tempo-para-zerar-jogos.csv a partir dos dados coletados por coletar_dados.py.
 
 Uso (na pasta do repositorio, depois de "python coletar_dados.py"):
 

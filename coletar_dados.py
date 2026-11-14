@@ -45,7 +45,7 @@ from concurrent.futures import ThreadPoolExecutor
 # --------------------------------------------------------------------------- configuracao
 PASTA = os.path.dirname(os.path.abspath(__file__))
 ARQ_IDS_HLTB = os.path.join(PASTA, "dados", "hltb_ids.csv")
-ARQ_BASE_ATUAL = os.path.join(PASTA, "dados", "jogos_mlg.csv")
+ARQ_BASE_ATUAL = os.path.join(PASTA, "dados", "tempo-para-zerar-jogos.csv")
 SAIDA = os.path.join(PASTA, "Coleta")
 PARCIAL = os.path.join(SAIDA, "parcial")
 
@@ -319,7 +319,8 @@ def mc_detalhar(jogos, arq, guardar_bruto=None):
         return True
 
     em_paralelo(um, faltam, "Metacritic detalhes")
-    return [x["linha"] for x in ler_jsonl(arq) if "linha" in x]
+    na_lista = {j["id"] for j in jogos}
+    return [x["linha"] for x in ler_jsonl(arq) if "linha" in x and x["id"] in na_lista]
 
 
 # --------------------------------------------------------------------------- HowLongToBeat
