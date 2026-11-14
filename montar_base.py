@@ -229,7 +229,7 @@ if __name__ == "__main__":
         os.path.join(pasta, "Coleta", "games.csv"),
         os.path.join(pasta, "Coleta", "hltb_data.csv"),
         os.path.join(pasta, "dados", "estudios_regiao.csv"))
-    saida = os.path.join(pasta, "dados", "jogos_mlg.csv")
+    saida = os.path.join(pasta, "dados", "tempo-para-zerar-jogos.csv")
     gravar(linhas, saida, ordem=lambda l: (l["titulo"].casefold(), l["ano"]))
     for chave, valor in info.items():
         print("%-24s %s" % (chave, valor))
