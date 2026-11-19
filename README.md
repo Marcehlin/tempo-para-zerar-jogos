@@ -1,5 +1,7 @@
 # Tempo para zerar jogos × notas do Metacritic
 
+*[English version](README.en.md)*
+
 Base de dados para modelar o **tempo médio para terminar a história principal** de um
 jogo eletrônico (segundo o [HowLongToBeat](https://howlongtobeat.com)) em função de
 características do jogo e das suas notas no [Metacritic](https://www.metacritic.com).
@@ -7,7 +9,7 @@ Foi montada para um trabalho de Modelos Lineares Generalizados (MLG).
 
 Este repositório traz a base pronta e os scripts que a coletam e montam do zero.
 
-- **Base:** [`dados/tempo-para-zerar-jogos.csv`](dados/tempo-para-zerar-jogos.csv), com 7.094 jogos e 17 colunas, sem valores faltantes.
+- **Base:** [`dados/tempo-para-zerar-jogos.csv`](dados/tempo-para-zerar-jogos.csv), com 7.094 jogos e 19 colunas. Só as duas colunas de tamanho têm valores faltantes (campo vazio).
 - **Coleta:** 13 e 14 de novembro de 2026.
 
 ## Colunas de `dados/tempo-para-zerar-jogos.csv`
@@ -31,11 +33,13 @@ Este repositório traz a base pronta e os scripts que a coletam e montam do zero
 | `pc` | 1 se o jogo saiu para PC |
 | `desenvolvedora` | estúdio que fez o jogo (o primeiro listado no Metacritic) |
 | `regiao_empresa` | região da empresa dona do estúdio na época do lançamento: `america_do_norte`, `europa`, `japao`, `outros` ou `desconhecido` |
+| `tamanho_gb` | espaço que o jogo ocupa, em GB (vazio quando não há dado; ver "Tamanho em armazenamento") |
+| `plataforma_tamanho` | plataforma de onde veio o tamanho (`PC` = requisito da Steam; as demais = catálogo do console) |
 
 Para ler no R:
 
 ```r
-dados <- read.csv("dados/tempo-para-zerar-jogos.csv", stringsAsFactors = TRUE)
+dados <- read.csv("dados/tempo-para-zerar-jogos.csv", stringsAsFactors = TRUE, na.strings = "")
 ```
 
 ## Como atualizar a base
@@ -43,9 +47,11 @@ dados <- read.csv("dados/tempo-para-zerar-jogos.csv", stringsAsFactors = TRUE)
 Só é preciso Python 3 (nenhum pacote extra).
 
 ```
-python coletar_dados.py teste    # opcional: amostra de ~50 jogos, 1 a 2 minutos
-python coletar_dados.py          # coleta completa
-python montar_base.py            # gera dados/tempo-para-zerar-jogos.csv
+python coletar_dados.py teste       # opcional: amostra de ~50 jogos, 1 a 2 minutos
+python coletar_dados.py             # coleta completa
+python coletar_tamanhos.py teste    # opcional: catálogos de console + 30 jogos da Steam
+python coletar_tamanhos.py          # tamanho em armazenamento
+python montar_base.py               # gera dados/tempo-para-zerar-jogos.csv
 ```
 
 A coleta completa faz cerca de 15 mil consultas ao Metacritic e de 15 a 50 mil ao
@@ -54,11 +60,17 @@ ser interrompida: o mesmo comando retoma de onde parou (o progresso fica em
 `Coleta/parcial/`). Os dados brutos ficam na pasta `Coleta/`, que não entra no
 repositório.
 
+A coleta de tamanhos baixa os catálogos de console (cerca de 110 MB, poucos minutos) e
+consulta a Steam um jogo por vez, com pausa de 1,5 s por causa do limite de acessos da
+loja: perto de 4.500 consultas, umas 2 horas. Também pode ser interrompida e retomada.
+Sem ela, `montar_base.py` funciona normalmente e deixa as duas colunas de tamanho vazias.
+
 ## Arquivos
 
 | Arquivo | Conteúdo |
 |---|---|
 | `coletar_dados.py` | coleta do Metacritic e do HowLongToBeat |
+| `coletar_tamanhos.py` | tamanho em armazenamento (catálogos de console e Steam) |
 | `montar_base.py` | junção das duas fontes, filtros e construção das variáveis |
 | `dados/tempo-para-zerar-jogos.csv` | base final |
 | `dados/estudios_regiao.csv` | região da empresa dona de cada estúdio |
@@ -112,6 +124,26 @@ As regiões são `america_do_norte` (EUA e Canadá), `europa` (inclui Rússia e 
 `japao` e `outros` (resto da Ásia, Oceania, América Latina, África, Oriente Médio e
 Turquia). Para corrigir uma classificação, edite a tabela e rode `python montar_base.py`.
 
+### Tamanho em armazenamento
+
+Nenhuma fonte única cobre todas as plataformas, então são usadas duas:
+
+| Origem | Plataformas | O que mede |
+|---|---|---|
+| Catálogos [Redump e No-Intro](https://github.com/libretro/libretro-database) | PlayStation, PS2, PS3, PSP, PS Vita, Dreamcast, Nintendo 64, Game Boy Advance, DS, 3DS | tamanho da imagem do disco, da ROM do cartucho ou do pacote digital (Vita e 3DS digital) |
+| Catálogo da eShop, [titledb](https://github.com/blawar/titledb) | Nintendo Switch | tamanho do download |
+| API da loja Steam | PC | espaço livre exigido nos requisitos mínimos, quando o HowLongToBeat traz o ID da Steam do jogo |
+
+- **Junção:** nos catálogos de console, pelo nome normalizado, como na junção principal.
+  Entre as versões de um mesmo jogo vale a dos EUA (depois mundial, Europa, outras,
+  Japão). Jogos de vários discos têm os discos somados. Demos, DLC, temas, protótipos e
+  relançamentos (Virtual Console etc.) ficam de fora.
+- **Jogos multiplataforma:** vale o tamanho na plataforma mais antiga, entre os consoles
+  em que o jogo saiu e que têm dado. A Steam só é usada quando não há tamanho de console.
+- **Plataformas sem dado:** PS4, PS5, Xbox One e Series, Switch 2 (sem catálogo aberto),
+  Xbox 360, GameCube, Wii (a imagem de disco tem tamanho praticamente fixo) e Wii U.
+  Jogos exclusivos delas ficam sem tamanho, a menos que tenham ID da Steam.
+
 ## Limitações
 
 - **Junção por nome.** Jogos com grafias diferentes nas duas fontes não formam par, e
@@ -123,6 +155,16 @@ Turquia). Para corrigir uma classificação, edite a tabela e rode `python monta
 - **Tabela de regiões.** Parte foi montada à mão e parte (367 estúdios, acrescentados em
   novembro de 2026) foi proposta com ajuda de IA e só parcialmente verificada. Correções
   são bem-vindas.
+- **Tamanho mede coisas diferentes conforme a origem.** Nos consoles é o arquivo real; nos
+  cartuchos de DS e 3DS é a capacidade do cartucho, que vem em potências de 2. Na Steam é
+  o espaço declarado pelo desenvolvedor, arredondado, na versão atual da página: jogos que
+  receberam atualizações grandes aparecem maiores do que eram no lançamento. A ordem de
+  grandeza também muda muito entre gerações (megabytes nos cartuchos, dezenas de gigabytes
+  no PC), então o tamanho costuma entrar no modelo em escala log e junto com
+  `plataforma_tamanho`.
+- **Faltantes de tamanho não são aleatórios.** Concentram-se em exclusivos de PlayStation 4
+  e 5, Xbox e consoles de mesa da Nintendo. Ajustar um modelo só com os jogos que têm
+  tamanho muda a população estudada.
 - **HowLongToBeat parcial.** A coleta visita os IDs conhecidos cujo nome coincide com o de
   algum jogo do Metacritic e todos os IDs novos; um jogo antigo renomeado no site pode
   não ser revisitado. A opção `--hltb-completo` visita todos.
@@ -138,5 +180,9 @@ Turquia). Para corrigir uma classificação, edite a tabela e rode `python monta
     ([dados no Kaggle](https://www.kaggle.com/datasets/davutb/metacritic-games/data));
   - [zaireali649/howlongtobeat-scraper](https://github.com/zaireali649/howlongtobeat-scraper)
     ([dados no Kaggle](https://www.kaggle.com/datasets/zaireali/howlongtobeat-games-scraper-2162025)).
+- Tamanhos: catálogos [Redump](http://redump.org) e [No-Intro](https://no-intro.org), na
+  compilação do [libretro-database](https://github.com/libretro/libretro-database);
+  [titledb](https://github.com/blawar/titledb) (eShop do Switch); e a loja
+  [Steam](https://store.steampowered.com).
 - A maior parte do código foi escrita pelo Claude (Anthropic), a partir das regras de
   junção, filtro e classificação definidas para o trabalho.

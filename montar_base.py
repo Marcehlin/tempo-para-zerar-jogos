@@ -1,7 +1,9 @@
-"""Monta dados/tempo-para-zerar-jogos.csv a partir dos dados coletados por coletar_dados.py.
+"""Monta dados/tempo-para-zerar-jogos.csv a partir dos dados coletados.
 
-Uso (na pasta do repositorio, depois de "python coletar_dados.py"):
+Uso (na pasta do repositorio):
 
+    python coletar_dados.py        # Metacritic e HowLongToBeat
+    python coletar_tamanhos.py     # opcional: tamanho em armazenamento
     python montar_base.py
 
 Etapas (as regras estao descritas no README):
@@ -10,7 +12,9 @@ Etapas (as regras estao descritas no README):
      MIN_RELATOS relatos de tempo da historia principal);
   3. juncao por nome, validada pelo ano de lancamento (diferenca maxima TOL_ANO),
      garantindo correspondencia 1 para 1;
-  4. construcao das variaveis e limpeza final.
+  4. construcao das variaveis e limpeza final;
+  5. tamanho em armazenamento (colunas tamanho_gb e plataforma_tamanho), a partir dos
+     arquivos de coletar_tamanhos.py; sem esses arquivos, as duas colunas ficam vazias.
 
 So usa a biblioteca padrao do Python.
 """
@@ -63,8 +67,16 @@ MAPA_GENERO = {g: grupo for grupo, lista in GRUPOS.items() for g in lista}
 COLUNAS = ["id_metacritic", "id_hltb", "titulo", "tempo_medio_h", "n_relatos", "metascore",
            "userscore", "n_criticas", "n_avaliacoes_usuarios", "ano", "genero",
            "genero_metacritic", "classificacao", "n_plataformas", "pc", "desenvolvedora",
-           "regiao_empresa"]
-TEXTO = {"titulo", "genero", "genero_metacritic", "classificacao", "desenvolvedora", "regiao_empresa"}
+           "regiao_empresa", "tamanho_gb", "plataforma_tamanho"]
+TEXTO = {"titulo", "genero", "genero_metacritic", "classificacao", "desenvolvedora", "regiao_empresa",
+         "plataforma_tamanho"}
+
+# Plataformas com catalogo de tamanho, da mais antiga para a mais nova (ano de lancamento
+# do console). Para jogos multiplataforma vale o tamanho na mais antiga com dado.
+ORDEM_PLATAFORMAS = {"PlayStation": 1994, "Nintendo 64": 1996, "Dreamcast": 1998,
+                     "PlayStation 2": 2000, "Game Boy Advance": 2001, "DS": 2004,
+                     "PSP": 2005, "PlayStation 3": 2006, "3DS": 2011.1,
+                     "PlayStation Vita": 2011.9, "Nintendo Switch": 2017}
 
 
 def arredonda2(x):
@@ -128,8 +140,10 @@ def montar(arq_notas, arq_tempos, arq_estudios):
             n, media = num(l.get("game_comp_main_count")), num(l.get("game_comp_main_avg"))
             if not chave or n is None or media is None or n < MIN_RELATOS or media <= 0:
                 continue
+            steam = inteiro(l.get("game_profile_steam"))
             hltb.setdefault(chave, []).append(
-                {"gid": int(float(l["game_game_id"])), "ano_hltb": ano, "n": int(n), "media": media})
+                {"gid": int(float(l["game_game_id"])), "ano_hltb": ano, "n": int(n), "media": media,
+                 "steam": str(steam) if steam and steam > 0 else None})
     info["hltb_registros"] = n_tempos
     info["hltb_filtrados"] = sum(len(v) for v in hltb.values())
 
@@ -185,6 +199,9 @@ def montar(arq_notas, arq_tempos, arq_estudios):
             "genero_metacritic": genres, "classificacao": classif,
             "n_plataformas": len(plats), "pc": int("PC" in plats),
             "desenvolvedora": dev, "regiao_empresa": regiao,
+            "tamanho_gb": None, "plataforma_tamanho": None,
+            # campos auxiliares (nao gravados), usados para o tamanho
+            "_chave": nt["chave"], "_plataformas": plats, "_steam": h["steam"],
         }
         sem_u = nt["userscore_sentiment"] == ""
         sem_m = linha["metascore"] is None or linha["n_plataformas"] == 0
@@ -206,9 +223,61 @@ def montar(arq_notas, arq_tempos, arq_estudios):
     return linhas, info
 
 
+def ler_tamanhos_console(caminho):
+    """{(plataforma, chave): bytes} de Coleta/tamanhos_console.csv; {} se nao existir."""
+    tabela = {}
+    if os.path.exists(caminho):
+        with open(caminho, encoding="utf-8", newline="") as f:
+            for l in csv.DictReader(f):
+                tabela[(l["plataforma"], l["chave"])] = int(l["tamanho_bytes"])
+    return tabela
+
+
+def ler_tamanhos_steam(caminho):
+    """{steam_appid: GB} de Coleta/tamanhos_steam.csv; {} se nao existir."""
+    tabela = {}
+    if os.path.exists(caminho):
+        with open(caminho, encoding="utf-8", newline="") as f:
+            for l in csv.DictReader(f):
+                if l["tamanho_gb"]:
+                    tabela[l["steam_appid"]] = float(l["tamanho_gb"])
+    return tabela
+
+
+def escolher_tamanho(linha, console, steam):
+    """(tamanho em GB, plataforma de origem) ou (None, None).
+
+    Vale o tamanho na plataforma mais antiga, entre os consoles em que o jogo saiu, que
+    tem dado no catalogo. O espaco exigido na Steam so e usado quando nao ha dado de console.
+    """
+    for p in sorted((p for p in linha["_plataformas"] if p in ORDEM_PLATAFORMAS),
+                    key=ORDEM_PLATAFORMAS.get):
+        b = console.get((p, linha["_chave"]))
+        if b:
+            return b / 1024 ** 3, p
+    if linha["_steam"] in steam:
+        return steam[linha["_steam"]], "PC"
+    return None, None
+
+
+def adicionar_tamanhos(linhas, pasta):
+    console = ler_tamanhos_console(os.path.join(pasta, "Coleta", "tamanhos_console.csv"))
+    steam = ler_tamanhos_steam(os.path.join(pasta, "Coleta", "tamanhos_steam.csv"))
+    if not console and not steam:
+        print("Aviso: Coleta/tamanhos_*.csv nao encontrados; tamanho_gb e plataforma_tamanho "
+              "ficam vazios. Rode antes: python coletar_tamanhos.py")
+    for l in linhas:
+        gb, plataforma = escolher_tamanho(l, console, steam)
+        l["tamanho_gb"] = None if gb is None else float("%.4g" % gb)
+        l["plataforma_tamanho"] = plataforma
+    return sum(l["tamanho_gb"] is not None for l in linhas)
+
+
 def gravar(linhas, caminho, ordem=None):
-    """Grava o CSV: textos entre aspas, numeros sem aspas, fim de linha LF."""
+    """Grava o CSV: textos entre aspas, numeros sem aspas, faltante vazio, fim de linha LF."""
     def fmt(c, v):
+        if v is None:
+            return ""
         if c in TEXTO:
             return '"' + str(v).replace('"', '""') + '"'
         if isinstance(v, float):
@@ -229,8 +298,15 @@ if __name__ == "__main__":
         os.path.join(pasta, "Coleta", "games.csv"),
         os.path.join(pasta, "Coleta", "hltb_data.csv"),
         os.path.join(pasta, "dados", "estudios_regiao.csv"))
+    info["com_tamanho"] = adicionar_tamanhos(linhas, pasta)
     saida = os.path.join(pasta, "dados", "tempo-para-zerar-jogos.csv")
     gravar(linhas, saida, ordem=lambda l: (l["titulo"].casefold(), l["ano"]))
     for chave, valor in info.items():
         print("%-24s %s" % (chave, valor))
+    origem = {}
+    for l in linhas:
+        origem[l["plataforma_tamanho"]] = origem.get(l["plataforma_tamanho"], 0) + 1
+    print("Origem do tamanho:")
+    for p, n in sorted(origem.items(), key=lambda t: -t[1]):
+        print("  %-18s %5d" % (p or "(sem tamanho)", n))
     print("Arquivo gravado:", saida, "com", len(linhas), "linhas")
