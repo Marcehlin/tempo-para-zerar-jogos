@@ -30,7 +30,7 @@ This repository contains the ready-to-use dataset and the scripts that collect a
 | `genero_metacritic` | original Metacritic genre |
 | `classificacao` | ESRB age rating: `E`, `E10+`, `T`, `M` or `Sem classificacao` (unrated) |
 | `n_plataformas` | number of platforms with a critic score |
-| `pc` | 1 if the game was released on PC |
+| `pc` | 1 if the game was released on PC at some point (including late ports and remasters): PC in the Metacritic or HowLongToBeat platform list, or a Steam ID |
 | `desenvolvedora` | studio that made the game (the first one listed on Metacritic) |
 | `regiao_empresa` | region of the studio's parent company at release time: `america_do_norte` (North America), `europa` (Europe), `japao` (Japan), `outros` (other) or `desconhecido` (unknown) |
 | `tamanho_gb` | storage space the game takes, in GB (empty when there is no data; see "Storage size") |

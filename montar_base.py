@@ -141,9 +141,11 @@ def montar(arq_notas, arq_tempos, arq_estudios):
             if not chave or n is None or media is None or n < MIN_RELATOS or media <= 0:
                 continue
             steam = inteiro(l.get("game_profile_steam"))
+            plataformas_hltb = [p.strip() for p in (l.get("game_profile_platform") or "").split(",")]
             hltb.setdefault(chave, []).append(
                 {"gid": int(float(l["game_game_id"])), "ano_hltb": ano, "n": int(n), "media": media,
-                 "steam": str(steam) if steam and steam > 0 else None})
+                 "steam": str(steam) if steam and steam > 0 else None,
+                 "pc_hltb": "PC" in plataformas_hltb})
     info["hltb_registros"] = n_tempos
     info["hltb_filtrados"] = sum(len(v) for v in hltb.values())
 
@@ -197,7 +199,11 @@ def montar(arq_notas, arq_tempos, arq_estudios):
             "n_avaliacoes_usuarios": inteiro(nt["userscore_count"]),
             "ano": nt["ano"], "genero": MAPA_GENERO.get(genres, "Outros"),
             "genero_metacritic": genres, "classificacao": classif,
-            "n_plataformas": len(plats), "pc": int("PC" in plats),
+            # pc: saiu para PC em algum momento (inclui ports e remasters tardios). O Metacritic
+            # so lista as plataformas com nota da critica, entao tambem contam o ID da Steam
+            # e a lista de plataformas do HowLongToBeat.
+            "n_plataformas": len(plats),
+            "pc": int("PC" in plats or bool(h["steam"]) or h["pc_hltb"]),
             "desenvolvedora": dev, "regiao_empresa": regiao,
             "tamanho_gb": None, "plataforma_tamanho": None,
             # campos auxiliares (nao gravados), usados para o tamanho

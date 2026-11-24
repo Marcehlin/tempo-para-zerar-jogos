@@ -30,7 +30,7 @@ Este repositório traz a base pronta e os scripts que a coletam e montam do zero
 | `genero_metacritic` | gênero original do Metacritic |
 | `classificacao` | classificação etária ESRB: `E`, `E10+`, `T`, `M` ou `Sem classificacao` |
 | `n_plataformas` | número de plataformas com nota da crítica |
-| `pc` | 1 se o jogo saiu para PC |
+| `pc` | 1 se o jogo saiu para PC em algum momento (inclui ports e remasters tardios): PC na lista do Metacritic ou do HowLongToBeat, ou ID da Steam |
 | `desenvolvedora` | estúdio que fez o jogo (o primeiro listado no Metacritic) |
 | `regiao_empresa` | região da empresa dona do estúdio na época do lançamento: `america_do_norte`, `europa`, `japao`, `outros` ou `desconhecido` |
 | `tamanho_gb` | espaço que o jogo ocupa, em GB (vazio quando não há dado; ver "Tamanho em armazenamento") |
